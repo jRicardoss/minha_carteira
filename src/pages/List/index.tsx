@@ -109,8 +109,15 @@ const List: React.FC<IRouteParams> = ({ match }) => {
     return (
         <Container>
             <ContentHeader title={pageData.title} lineColor={pageData.lineColor}>
-                <SelectInput options={months} onChange={(e) => setMonthSelected(e.target.value)} defaultValue={monthSelected} />
-                <SelectInput options={years} onChange={(e) => setYearSelected(e.target.value)} defaultValue={yearSelected} />
+                <SelectInput 
+                options={months} 
+                onChange={(e) => setMonthSelected(e.target.value)} 
+                defaultValue={monthSelected} />
+
+                <SelectInput 
+                options={years} 
+                onChange={(e) => setYearSelected(e.target.value)} 
+                defaultValue={yearSelected} />
             </ContentHeader>
             <Content>
 
