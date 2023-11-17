@@ -119,11 +119,12 @@ const List: React.FC<IRouteParams> = ({ match }) => {
                 onChange={(e) => setYearSelected(e.target.value)} 
                 defaultValue={yearSelected} />
             </ContentHeader>
-            <Content>
 
                 <Filters>
                     <button type="button"
-                        className={`tag-filter tag-filter-recurrent
+                        className={`
+                        tag-filter 
+                        tag-filter-recurrent
                         ${frequencyFilterSelected.includes('recorrente') && 'tag-actived'}
                         
                         `}
@@ -132,7 +133,9 @@ const List: React.FC<IRouteParams> = ({ match }) => {
                         Recorrentes
                     </button>
                     <button type="button"
-                        className={`tag-filter tag-filter-eventual
+                        className={`
+                        tag-filter 
+                        tag-filter-eventual
                         ${frequencyFilterSelected.includes('eventual') && 'tag-actived'}
                         `}
                         onClick={() => handleFrequencyClick('eventual')}
@@ -140,6 +143,8 @@ const List: React.FC<IRouteParams> = ({ match }) => {
                         Eventuais
                     </button>
                 </Filters>
+                <Content>
+
                 {data.map(item => (
                     <HistoryFinanceCard
                         key={item.id}
