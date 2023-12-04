@@ -1,6 +1,6 @@
 import React from "react";
 import { Container ,TitleContainer, Controllers } from "./style";
-import SelectInput from "../SelectInput";
+
 
 interface IContentHeaderProps{
     title: string;
