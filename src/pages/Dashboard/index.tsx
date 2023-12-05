@@ -5,6 +5,7 @@ import SelectInput from "../../components/SelectInput";
 import WalletBox from '../../components/WalletBox'
 import MensageBox from '../../components/MessageBox'
 import PieCharBoxt from '../../components/PieCharBoxt'
+import HistoryBox from "../../components/HistoryBox";
 
 
 import listOfMonths from '../../utils/months';
@@ -99,7 +100,7 @@ const Dashboard: React.FC = () => {
     const message = useMemo(() => {
         if (totalBalance < 0) {
             return {
-                title: "Que triste!",
+                title: "Tô liso!",
                 description: "Neste mês, você gastou mais do que deveria!",
                 footerText: "Verifique suas saídas e tente cortar gastos desnecessários",
                 icon: sadImg,
@@ -112,22 +113,22 @@ const Dashboard: React.FC = () => {
                 footerText: "Tenha cuidado. Na próxima tente poupar mais o seu dinheiro",
                 icon: grinnigImg,
             }
-        }else{
-            return{
-                title:"Muito Bem!",
-                description:"Sua carteira está positiva!",
-                footerText:"Continue assim. Considere investir o seu saldo",
+        } else {
+            return {
+                title: "Muito Bem!",
+                description: "Sua carteira está positiva!",
+                footerText: "Continue assim. Considere investir o seu saldo",
                 icon: happyImg,
             }
         }
     }, [totalBalance])
 
-    const relationExpensesVSGains =useMemo(()=>{
+    const relationExpensesVSGains = useMemo(() => {
         const total = totalGains + totalExpenses
 
-        const percentGains = (totalGains / total) *100
-        const percentExpenses = (totalExpenses / total) *100
-        const data =[
+        const percentGains = (totalGains / total) * 100
+        const percentExpenses = (totalExpenses / total) * 100
+        const data = [
             {
                 name: "Entradas",
                 value: totalGains,
@@ -143,7 +144,56 @@ const Dashboard: React.FC = () => {
         ];
         return data
 
-    },[totalExpenses, totalGains])
+    }, [totalExpenses, totalGains])
+
+    const HistoryData = useMemo(() => {
+        return listOfMonths.map((_, month) => {
+            let amountInput = 0;
+            gains.forEach(gain => {
+                const date = new Date(gain.date);
+                const gainMonth = date.getMonth();
+                const gainYear = date.getFullYear();
+                if (gainMonth === month && gainYear === yearSelected) {
+                    try {
+                        amountInput += Number(gain.amount)
+
+                    } catch {
+                        throw new Error('error, number is invalid ')
+
+                    }
+                }
+
+            });
+            let amountOutput = 0;
+            expenses.forEach(expenses => {
+                const date = new Date(expenses.date);
+                const expensesMonth = date.getMonth();
+                const expensesYear = date.getFullYear();
+                if (expensesMonth === month && expensesYear === yearSelected) {
+                    try {
+                        amountOutput += Number(expenses.amount)
+
+                    } catch {
+                        throw new Error('error, number is invalid ')
+
+                    }
+                }
+
+            })
+            return {
+                monthNumber: month,
+                month: listOfMonths[month].substr(0, 3),
+                amountInput,
+                amountOutput,
+            }
+        })
+            .filter(item => {
+                const currentMonth = new Date().getMonth();
+                const currentYear = new Date().getFullYear();
+                return (yearSelected === currentYear && item.monthNumber <= currentMonth) || (yearSelected < currentYear)
+
+            });
+    }, [yearSelected])
 
     const handleMonthSelected = (month: string) => {
         try {
@@ -208,7 +258,14 @@ const Dashboard: React.FC = () => {
                     icon={message.icon}
                 />
                 <PieCharBoxt
-                data={relationExpensesVSGains}
+                    data={relationExpensesVSGains}
+                />
+
+                <HistoryBox
+                    data={HistoryData}
+                    lineColorAmountInput="#f7931b"
+                    lineColorAmountOutput="#e44c4e"
+
                 />
             </Content>
         </Container>
