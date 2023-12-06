@@ -10,8 +10,7 @@ const MainHeader: React.FC = () => {
         return emojis[indice]
     },[])
 
-    return (
-        <>
+    return (       
             <Container>
             <Toggle />
                 <Profile>
@@ -19,7 +18,6 @@ const MainHeader: React.FC = () => {
                     <UserName>João Ricardo</UserName>
                 </Profile>
             </Container>
-        </>
     )
 };
 export default MainHeader;
