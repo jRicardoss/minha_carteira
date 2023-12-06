@@ -4,7 +4,7 @@ export const Container = styled.div`
     background-color:${props => props.theme.color.secondary};
     
     display: flex;
-    justify-content: space-between;
+    justify-content: end;
     align-items: center;
     padding: 0 10px;
     border-bottom: 1px solid${props => props.theme.color.gray};
@@ -12,6 +12,7 @@ export const Container = styled.div`
 
 export const Profile = styled.div`
     color: ${props => props.theme.color.white};
+    margin-right: 15px;
 `;
 export const Welcome = styled.h3`
     
