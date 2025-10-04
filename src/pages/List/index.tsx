@@ -13,6 +13,7 @@ import listOfMonths from '../../utils/months';
 
 import { Container, Content, Filters } from './style';
 
+
 interface IRouteParams {
     match: {
         params: {
@@ -35,9 +36,10 @@ const List: React.FC<IRouteParams> = ({ match }) => {
     const [monthSelected, setMonthSelected] = useState<number>(new Date().getMonth() + 1);
     const [yearSelected, setYearSelected] = useState<number>(new Date().getFullYear());
     const [frequencyFilterSelected, setFrequencyFilterSelected] = useState(['recorrente', 'eventual']);
+    console.log('List foi montado!', match.params.type);
     
     const movimentType = match.params.type;
-
+    
 
     const pageData = useMemo(() => {
         return movimentType === 'entry-balance' ?
@@ -47,6 +49,7 @@ const List: React.FC<IRouteParams> = ({ match }) => {
                 data: gains
             }
             :       
+        
             {
                 title: 'Saídas',
                 lineColor: '#E44C4E',
@@ -121,30 +124,36 @@ const List: React.FC<IRouteParams> = ({ match }) => {
     }
 
 
-    useEffect(() => {        
-        const { data } = pageData;
+useEffect(() => {
+    const { data } = pageData;
 
-        const filteredData = data.filter(item => {
-            const date = new Date(item.date);
-            const month = date.getMonth() + 1;
-            const year = date.getFullYear();
+    // Filtra por mês, ano e frequência
+    const filteredData = data.filter(item => {
+        const date = new Date(item.date);
+        const month = date.getMonth() + 1; // getMonth() retorna 0-11
+        const year = date.getFullYear();
 
-            return month === monthSelected && year === yearSelected && frequencyFilterSelected.includes(item.frequency);
-        });
+        return (
+            month === monthSelected &&
+            year === yearSelected &&
+            frequencyFilterSelected.includes(item.frequency)
+        );
+    });
 
-        const formattedData = filteredData.map(item => {
-            return {
-                id: nanoid(),
-                description: item.description,
-                amountFormatted: formatCurrency(Number(item.amount)),
-                frequency: item.frequency,
-                dateFormatted: formatDate(item.date),
-                tagColor: item.frequency === 'recorrente' ? '#4E41F0' : '#E44C4E',
-            }
-        });
-        
-        setData(formattedData);
-    },[pageData, monthSelected, yearSelected, data.length, frequencyFilterSelected]); 
+    // Formata os dados para exibir
+    const formattedData = filteredData.map(item => ({
+        id: nanoid(),
+        description: item.description,
+        amountFormatted: formatCurrency(Number(item.amount)),
+        frequency: item.frequency,
+        dateFormatted: formatDate(item.date),
+        tagColor: item.frequency === 'recorrente' ? '#4E41F0' : '#E44C4E',
+    }));
+
+    console.log('Dados filtrados:', formattedData); // só pra verificar no console
+
+    setData(formattedData);
+}, [pageData, monthSelected, yearSelected, frequencyFilterSelected]);
 
 
     return (
