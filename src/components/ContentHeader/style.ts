@@ -11,20 +11,20 @@ export const Container = styled.div`
  
     
 `;
-
-export const TitleContainer = styled.div<ITitleContainerProps>`
+export const TitleContainer = styled.div<{ $lineColor: string }>`
    >h1{
-        color: ${props => props.theme.color.white};
+        color: ${({ theme }) => theme.color.white};
 
         &::after{
             content: '';
             display: block;
             width: 70px;
-            border-bottom: 10px solid ${props=>props.lineColor};
+            border-bottom: 10px solid ${({ $lineColor }) => $lineColor};
             border-radius: 5px 2px 5px 2px;
-}
+        }
+    }
+`;
 
-}`;
 
 export const Controllers = styled.div`
     display: flex;
