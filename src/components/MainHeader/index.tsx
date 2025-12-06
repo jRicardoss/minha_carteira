@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Container, Profile, Welcome, UserName  } from "./style";
 
 import emojis from "../../utils/emojis";
+import ModalAddTransaction from "../ModalAddTransaction";
 
 const MainHeader: React.FC = () => {
     const emoji = useMemo(()=>{
@@ -12,9 +13,10 @@ const MainHeader: React.FC = () => {
     return (       
             <Container>
                 <Profile>
-                   <Welcome>Olá,{emoji}</Welcome>
+                    <Welcome>Olá,{emoji}</Welcome>
                     <UserName>João Ricardo</UserName>
                 </Profile>
+                    <ModalAddTransaction/>
             </Container>
     )
 };
