@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback, useEffect } from "react";
-import { api } from '../../services/api';
+import  api  from '../../services/api';
 
 import ContentHeader from "../../components/ContentHeader";
 import SelectInput from "../../components/SelectInput";
@@ -34,19 +34,47 @@ const Dashboard: React.FC = () => {
     const [expenses, setExpenses] = useState<IDataItem[]>([]);
 
     // Buscar dados do backend
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const resEntries = await api.get<IDataItem[]>('/entries');
-                const resExpenses = await api.get<IDataItem[]>('/expenses');
-                setEntries(resEntries.data);
-                setExpenses(resExpenses.data);
-            } catch (err) {
-                console.error(err);
-            }
-        };
-        fetchData();
-    }, []);
+   // Buscar dados do backend
+// Buscar transações do SQLite através do backend
+useEffect(() => {
+    const fetchData = async () => {
+        try {
+            const resposta = await api.get("/transacoes");
+
+            const transacoes = resposta.data;
+
+            const entradas: IDataItem[] = transacoes
+                .filter((item: any) => item.type === "entrada")
+                .map((item: any) => ({
+                    id: item.id,
+                    title: item.description,
+                    value: Number(item.amount),
+                    type: "income",
+                    date: item.date,
+                    frequency: item.frequency,
+                }));
+
+            const saidas: IDataItem[] = transacoes
+                .filter((item: any) => item.type === "saida")
+                .map((item: any) => ({
+                    id: item.id,
+                    title: item.description,
+                    value: Number(item.amount),
+                    type: "expense",
+                    date: item.date,
+                    frequency: item.frequency,
+                }));
+
+            setEntries(entradas);
+            setExpenses(saidas);
+
+        } catch (err) {
+            console.error("Erro ao buscar transações:", err);
+        }
+    };
+
+    fetchData();
+}, []);
 
     // Anos disponíveis
     const years = useMemo(() => {

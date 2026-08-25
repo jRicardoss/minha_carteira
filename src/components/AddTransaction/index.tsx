@@ -1,4 +1,6 @@
 import { useState } from "react";
+import api from "../../services/api";
+
 import {
   Container,
   Select,
@@ -17,7 +19,7 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ onAdded }) => {
   const [title, setTitle] = useState("");
   const [value, setValue] = useState("");
   const [date, setDate] = useState("");
-  const [frequency, setFrequency] = useState("eventual"); // padrão
+  const [frequency, setFrequency] = useState("eventual");
 
   const handleSubmit = async (
     e: React.FormEvent<HTMLFormElement>
@@ -25,45 +27,35 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ onAdded }) => {
     e.preventDefault();
 
     if (!title || !value || !date) {
-      alert("Preencha tudo, porra!");
+      alert("Preencha todos os campos!");
       return;
     }
 
     try {
-      // seleciona a rota correta
-      const url =
-        type === "entrada"
-          ? "http://localhost:3333/entries"
-          : "http://localhost:3333/expenses";
+      await api.post("/transacoes", {
+        description: title,
+        amount: Number(value),
+        type,
+        frequency,
+        date
+    });
 
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type,
-          title,
-          value: Number(value),
-          date,
-          frequency, // agora salva: "eventual" ou "recorrente"
-        }),
-      });
-
-      if (!res.ok) {
-        alert("Erro ao enviar");
-        return;
-      }
-
-      // limpar campos
+      // Limpa o formulário
       setType("entrada");
       setTitle("");
       setValue("");
       setDate("");
       setFrequency("eventual");
 
-      if (onAdded) onAdded();
+      // Atualiza a tela que chamou o formulário
+      if (onAdded) {
+        onAdded();
+      }
+
+      alert("Transação adicionada com sucesso!");
     } catch (err) {
-      alert("Erro ao enviar");
-      console.log(err);
+      console.error("Erro ao adicionar transação:", err);
+      alert("Erro ao adicionar transação.");
     }
   };
 
@@ -72,7 +64,6 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ onAdded }) => {
       <Title>Adicionar Transação</Title>
 
       <Form onSubmit={handleSubmit}>
-
         <Select
           value={type}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
@@ -109,7 +100,6 @@ const AddTransaction: React.FC<AddTransactionProps> = ({ onAdded }) => {
           }
         />
 
-        {/* FREQUÊNCIA AJUSTADA */}
         <Select
           value={frequency}
           onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>

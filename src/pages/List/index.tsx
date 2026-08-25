@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { api } from '../../services/api';
+import api  from '../../services/api';
 import ContentHeader from '../../components/ContentHeader';
 import SelectInput from '../../components/SelectInput';
 import HistoryFinanceCard from '../../components/HistoryFinanceCard';
@@ -67,56 +67,95 @@ const List: React.FC<IRouteParams> = ({ match }) => {
   const handleMonthSelected = (month: string) => setMonthSelected(Number(month));
   const handleYearSelected = (year: string) => setYearSelected(Number(year));
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const route = pageData.type === 'income' ? '/entries' : '/expenses';
-        const res = await api.get<IDataItem[]>(route);
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      // Busca todas as transações do SQLite
+      const res = await api.get('/transacoes');
 
-        // monta anos únicos
-        const uniqueYears = Array.from(new Set(res.data.map(item => new Date(item.date).getFullYear())));
-        setYears(uniqueYears.map(y => ({ value: y, label: y })));
+      // Converte os dados do SQLite para o formato usado pela tela
+      const transacoes: IDataItem[] = res.data.map((item: any) => ({
+        id: item.id,
+        title: item.description,
+        value: Number(item.amount),
+        type: item.type === 'entrada' ? 'income' : 'expense',
+        date: item.date,
+        frequency: item.frequency,
+      }));
 
-        // filtra por mês/ano/frequência usando o campo frequency vindo do backend
-        const filteredData = res.data.filter(item => {
-          const date = new Date(item.date);
-          const month = date.getMonth() + 1;
-          const year = date.getFullYear();
+      // Mostra somente o tipo da página atual
+      const transacoesDoTipo = transacoes.filter(
+        item => item.type === pageData.type
+      );
 
-          // normaliza o campo frequency pra comparação (caso venha com maiúsculas, acentos etc)
-          const frequency = String(item.frequency || '').toLowerCase();
+      // Monta os anos disponíveis
+      const uniqueYears = Array.from(
+        new Set(
+          transacoesDoTipo.map(item =>
+            new Date(item.date).getFullYear()
+          )
+        )
+      );
 
-          return (
-            month === monthSelected &&
-            year === yearSelected &&
-            frequencyFilterSelected.includes(frequency)
-          );
-        });
+      setYears(
+        uniqueYears.map(year => ({
+          value: year,
+          label: year,
+        }))
+      );
 
-        // formatar os dados pra UI
-        const formattedData: IFormattedData[] = filteredData.map(item => {
-          const freqNorm = String(item.frequency || '').toLowerCase();
-          const frequency: 'recorrente' | 'eventual' = freqNorm.includes('recorr') ? 'recorrente' : 'eventual';
+      // Filtra mês, ano e frequência
+      const filteredData = transacoesDoTipo.filter(item => {
+        const date = new Date(item.date);
 
-          return {
-            id: item.id.toString(),
-            description: item.title,
-            amountFormatted: formatCurrency(Number(item.value)),
-            frequency,
-            dateFormatted: formatDate(item.date),
-            tagColor: frequency === 'recorrente' ? '#4E41F0' : '#E44C4E',
-          };
-        });
+        const month = date.getMonth() + 1;
+        const year = date.getFullYear();
 
-        setData(formattedData);
-      } catch (err) {
-        console.error(err);
-      }
-    };
+        const frequency = String(item.frequency || '').toLowerCase();
 
-    fetchData();
-  }, [pageData, monthSelected, yearSelected, frequencyFilterSelected]);
+        return (
+          month === monthSelected &&
+          year === yearSelected &&
+          frequencyFilterSelected.includes(frequency)
+        );
+      });
 
+      // Prepara os dados para os cards
+      const formattedData: IFormattedData[] = filteredData.map(item => {
+        const freqNorm = String(item.frequency || '').toLowerCase();
+
+        const frequency: 'recorrente' | 'eventual' =
+          freqNorm.includes('recorr')
+            ? 'recorrente'
+            : 'eventual';
+
+        return {
+          id: item.id.toString(),
+          description: item.title,
+          amountFormatted: formatCurrency(Number(item.value)),
+          frequency,
+          dateFormatted: formatDate(item.date),
+          tagColor:
+            frequency === 'recorrente'
+              ? '#4E41F0'
+              : '#E44C4E',
+        };
+      });
+
+      setData(formattedData);
+
+    } catch (err) {
+      console.error('Erro ao buscar transações:', err);
+    }
+  };
+
+  fetchData();
+}, [
+  pageData,
+  monthSelected,
+  yearSelected,
+  frequencyFilterSelected
+]);
   return (
     <Container>
       <ContentHeader title={pageData.title} lineColor={pageData.lineColor}>
