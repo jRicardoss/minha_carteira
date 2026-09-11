@@ -234,7 +234,23 @@ const List: React.FC<IRouteParams> = ({ match }) => {
         frequencyFilterSelected,
         reload,
     ]);
+    useEffect(() => {
+        const handleTransacoesAtualizadas = () => {
+            setReload(prev => prev + 1);
+        };
 
+        window.addEventListener(
+            "transacoesAtualizadas",
+            handleTransacoesAtualizadas
+        );
+
+        return () => {
+            window.removeEventListener(
+                "transacoesAtualizadas",
+                handleTransacoesAtualizadas
+            );
+        };
+    }, []);
     const handleUpdate = async (
         e: React.FormEvent<HTMLFormElement>
     ) => {
