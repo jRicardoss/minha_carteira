@@ -573,6 +573,38 @@ app.get(
     }
 );
 
+app.delete(
+    "/api/usuarios/me",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const resultado = db.prepare(`
+                DELETE FROM usuarios
+                WHERE id = ?
+            `).run(req.usuario.id);
+
+            if (resultado.changes === 0) {
+                return res.status(404).json({
+                    erro: "Usuário não encontrado"
+                });
+            }
+
+            res.json({
+                mensagem: "Conta excluída com sucesso"
+            });
+
+        } catch (error) {
+            console.error(
+                "ERRO AO EXCLUIR CONTA:",
+                error
+            );
+
+            res.status(500).json({
+                erro: "Erro ao excluir conta"
+            });
+        }
+    }
+);
 const PORT = 3001;
 
 app.listen(PORT, () => {

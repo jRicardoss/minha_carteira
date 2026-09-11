@@ -12,6 +12,7 @@ import {
     MenuContainer,
     MenuItemLink,
     LogoutButton,
+    DangerButton,
     CloseButton
 } from "./style";
 
@@ -20,6 +21,7 @@ import {
     MdArrowDownward,
     MdArrowUpward,
     MdExitToApp,
+    MdDeleteForever,
     MdClose
 } from "react-icons/md";
 
@@ -37,12 +39,28 @@ const Aside: React.FC<AsideProps> = ({
     onMenuClose
 }) => {
     const history = useHistory();
-    const { logout } = useAuth();
+    const { logout, excluirConta } = useAuth();
 
     const handleLogout = () => {
         onMenuClose();
         logout();
         history.push("/login");
+    };
+
+    const handleExcluirConta = async () => {
+        const confirmar = window.confirm(
+            "Tem certeza? Isso vai apagar sua conta e todas as suas transações, sem volta."
+        );
+
+        if (!confirmar) return;
+
+        try {
+            onMenuClose();
+            await excluirConta();
+            history.push("/login");
+        } catch (err) {
+            alert("Erro ao excluir a conta. Tente novamente.");
+        }
     };
 
     return (
@@ -97,6 +115,14 @@ const Aside: React.FC<AsideProps> = ({
                     <MdExitToApp />
                     Sair
                 </LogoutButton>
+
+                <DangerButton
+                    type="button"
+                    onClick={handleExcluirConta}
+                >
+                    <MdDeleteForever />
+                    Excluir conta
+                </DangerButton>
             </MenuContainer>
         </Container>
     );

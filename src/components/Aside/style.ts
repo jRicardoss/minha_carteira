@@ -141,3 +141,31 @@ export const LogoutButton = styled.button`
         margin-right: 5px;
     }
 `;
+
+export const DangerButton = styled.button`
+    color: #E44C4E;
+
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    font-size: 16px;
+
+    margin: 7px 0;
+    padding: 0;
+
+    display: flex;
+    align-items: center;
+
+    cursor: pointer;
+
+    transition: opacity 0.3s;
+
+    &:hover {
+        opacity: 0.7;
+    }
+
+    > svg {
+        font-size: 18px;
+        margin-right: 5px;
+    }
+`;
