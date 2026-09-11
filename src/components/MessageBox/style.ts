@@ -1,29 +1,35 @@
 import styled from "styled-components";
 
-export const Container =styled.div`
-    width: 48%;
-    height: 260px;
+export const Container = styled.div`
+width: 48%;
+height: 260px;
 
-    background-color: ${props=> props.theme.color.tertiary};
-    color: ${props=> props.theme.color.white};
+box-sizing: border-box;
 
-    border-radius: 7px;
+background-color: ${props => props.theme.color.tertiary};
+color: ${props => props.theme.color.white};
 
-    margin: 10px 0;
-    padding: 30px 20px;
+border-radius: 7px;
 
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+margin: 10px 0;
+padding: 30px 20px;
 
-    > header img {
-        width: 35px;
-        margin-left:7px ;
+display: flex;
+flex-direction: column;
+justify-content: space-between;
 
-    }
-    > header p {
-        font-size:18px    
-
+> header img {
+    width: 35px;
+    margin-left: 7px;
 }
+
+> header p {
+    font-size: 18px;
+}
+
+@media (max-width: 1024px) {
+    width: 100%;
+}
+
 
 `;
