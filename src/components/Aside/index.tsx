@@ -1,12 +1,17 @@
 import React from "react";
 
 import {
+    useHistory,
+} from "react-router-dom";
+
+import {
     Container,
     Header,
     LogImg,
     Title,
     MenuContainer,
     MenuItemLink,
+    LogoutButton,
     CloseButton
 } from "./style";
 
@@ -20,6 +25,8 @@ import {
 
 import logImg from "../../assets/logo.svg";
 
+import { useAuth } from "../../Hooks/auth";
+
 interface AsideProps {
     menuIsOpen: boolean;
     onMenuClose: () => void;
@@ -29,6 +36,15 @@ const Aside: React.FC<AsideProps> = ({
     menuIsOpen,
     onMenuClose
 }) => {
+    const history = useHistory();
+    const { logout } = useAuth();
+
+    const handleLogout = () => {
+        onMenuClose();
+        logout();
+        history.push("/login");
+    };
+
     return (
         <Container menuIsOpen={menuIsOpen}>
             <Header>
@@ -74,13 +90,13 @@ const Aside: React.FC<AsideProps> = ({
                     Saídas
                 </MenuItemLink>
 
-                <MenuItemLink
-                    href="#"
-                    onClick={onMenuClose}
+                <LogoutButton
+                    type="button"
+                    onClick={handleLogout}
                 >
                     <MdExitToApp />
                     Sair
-                </MenuItemLink>
+                </LogoutButton>
             </MenuContainer>
         </Container>
     );
