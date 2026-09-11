@@ -18,29 +18,50 @@ import {
     LoginText,
 } from "./style";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 const Register: React.FC = () => {
 
     const history = useHistory();
 
-    const [nome, setNome] =
-        useState("");
+    const [nome, setNome] = useState("");
+    const [email, setEmail] = useState("");
+    const [senha, setSenha] = useState("");
+    const [confirmarSenha, setConfirmarSenha] = useState("");
+    const [error, setError] = useState("");
+    const [loading, setLoading] = useState(false);
 
-    const [email, setEmail] =
-        useState("");
+    const validarFormulario = (): string | null => {
+        if (!nome || !email || !senha || !confirmarSenha) {
+            return "Preencha todos os campos";
+        }
 
-    const [senha, setSenha] =
-        useState("");
+        if (!EMAIL_REGEX.test(email)) {
+            return "Informe um e-mail válido";
+        }
 
-    const [error, setError] =
-        useState("");
+        if (senha.length < 6) {
+            return "A senha deve ter pelo menos 6 caracteres";
+        }
 
-    const [loading, setLoading] =
-        useState(false);
+        if (senha !== confirmarSenha) {
+            return "As senhas não coincidem";
+        }
+
+        return null;
+    };
 
     const handleSubmit = async (
         e: React.FormEvent
     ) => {
         e.preventDefault();
+
+        const mensagemDeErro = validarFormulario();
+
+        if (mensagemDeErro) {
+            setError(mensagemDeErro);
+            return;
+        }
 
         try {
             setError("");
@@ -72,27 +93,21 @@ const Register: React.FC = () => {
         <Container>
             <RegisterBox>
 
-                <h1>
-                    Criar conta
-                </h1>
+                <h1>Criar conta</h1>
 
                 <p>
                     Crie sua conta para
                     controlar sua carteira
                 </p>
 
-                <Form
-                    onSubmit={handleSubmit}
-                >
+                <Form onSubmit={handleSubmit}>
 
                     <Input
                         type="text"
                         placeholder="Seu nome"
                         value={nome}
-                        onChange={(e : React.ChangeEvent<HTMLInputElement>) =>
-                            setNome(
-                                e.target.value
-                            )
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setNome(e.target.value)
                         }
                     />
 
@@ -100,10 +115,8 @@ const Register: React.FC = () => {
                         type="email"
                         placeholder="Seu email"
                         value={email}
-                        onChange={(e : React.ChangeEvent<HTMLInputElement>) =>
-                            setEmail(
-                                e.target.value
-                            )
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setEmail(e.target.value)
                         }
                     />
 
@@ -111,41 +124,33 @@ const Register: React.FC = () => {
                         type="password"
                         placeholder="Crie uma senha"
                         value={senha}
-                        onChange={(e : React.ChangeEvent<HTMLInputElement>) =>
-                            setSenha(
-                                e.target.value
-                            )
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setSenha(e.target.value)
+                        }
+                    />
+
+                    <Input
+                        type="password"
+                        placeholder="Confirme sua senha"
+                        value={confirmarSenha}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                            setConfirmarSenha(e.target.value)
                         }
                     />
 
                     {error && (
-                        <ErrorMessage>
-                            {error}
-                        </ErrorMessage>
+                        <ErrorMessage>{error}</ErrorMessage>
                     )}
 
-                    <Button
-                        type="submit"
-                        disabled={loading}
-                    >
-                        {loading
-                            ? "Criando..."
-                            : "Criar conta"
-                        }
+                    <Button type="submit" disabled={loading}>
+                        {loading ? "Criando..." : "Criar conta"}
                     </Button>
 
                 </Form>
 
                 <LoginText>
                     Já possui uma conta?
-
-                    <span
-                        onClick={() =>
-                            history.push(
-                                "/login"
-                            )
-                        }
-                    >
+                    <span onClick={() => history.push("/login")}>
                         Entrar
                     </span>
                 </LoginText>
