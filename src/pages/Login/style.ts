@@ -122,7 +122,7 @@ export const RegisterText = styled.p`
 
         color:
             ${props =>
-                props.theme.color.secondary};
+                props.theme.color.info};
 
         font-weight: bold;
     }
