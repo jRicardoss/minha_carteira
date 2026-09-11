@@ -1,4 +1,3 @@
-
 const express = require("express");
 const cors = require("cors");
 
@@ -9,9 +8,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ============================================================
+
 // ROTA PRINCIPAL
-// ============================================================
+// GET /
 
 app.get("/", (req, res) => {
     res.json({
@@ -19,10 +18,9 @@ app.get("/", (req, res) => {
     });
 });
 
-// ============================================================
 // LISTAR TRANSAÇÕES
 // GET /api/transacoes
-// ============================================================
+
 
 app.get("/api/transacoes", (req, res) => {
     try {
@@ -33,6 +31,7 @@ app.get("/api/transacoes", (req, res) => {
         `).all();
 
         res.json(transacoes);
+
     } catch (error) {
         console.error("ERRO AO BUSCAR TRANSAÇÕES:", error);
 
@@ -43,10 +42,8 @@ app.get("/api/transacoes", (req, res) => {
     }
 });
 
-// ============================================================
 // CRIAR TRANSAÇÃO
 // POST /api/transacoes
-// ============================================================
 
 app.post("/api/transacoes", (req, res) => {
     try {
@@ -133,10 +130,105 @@ app.post("/api/transacoes", (req, res) => {
     }
 });
 
-// ============================================================
-// DELETAR TRANSAÇÃO
-// DELETE /api/transacoes/:id
-// ============================================================
+app.put("/api/transacoes/:id", (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const {
+            description,
+            amount,
+            type,
+            frequency,
+            date
+        } = req.body;
+
+        console.log(
+            "DADOS PARA ATUALIZAR:",
+            id,
+            req.body
+        );
+
+        // Verifica campos obrigatórios
+        if (
+            !description ||
+            amount === undefined ||
+            !type ||
+            !frequency ||
+            !date
+        ) {
+            return res.status(400).json({
+                erro: "Todos os campos são obrigatórios",
+                dadosRecebidos: req.body
+            });
+        }
+
+        // Verifica tipo
+        if (!["entrada", "saida"].includes(type)) {
+            return res.status(400).json({
+                erro: "O tipo deve ser 'entrada' ou 'saida'"
+            });
+        }
+
+        // Verifica frequência
+        if (!["recorrente", "eventual"].includes(frequency)) {
+            return res.status(400).json({
+                erro: "A frequência deve ser 'recorrente' ou 'eventual'"
+            });
+        }
+
+        // Atualiza a transação
+        const resultado = db.prepare(`
+            UPDATE transacoes
+            SET
+                description = ?,
+                amount = ?,
+                type = ?,
+                frequency = ?,
+                date = ?
+            WHERE id = ?
+        `).run(
+            description,
+            Number(amount),
+            type,
+            frequency,
+            date,
+            id
+        );
+
+        // Verifica se encontrou a transação
+        if (resultado.changes === 0) {
+            return res.status(404).json({
+                erro: "Transação não encontrada"
+            });
+        }
+
+        // Busca a transação atualizada
+        const transacaoAtualizada = db.prepare(`
+            SELECT *
+            FROM transacoes
+            WHERE id = ?
+        `).get(id);
+
+        console.log(
+            "TRANSAÇÃO ATUALIZADA:",
+            transacaoAtualizada
+        );
+
+        res.json(transacaoAtualizada);
+
+    } catch (error) {
+        console.error(
+            "ERRO AO ATUALIZAR TRANSAÇÃO:",
+            error
+        );
+
+        res.status(500).json({
+            erro: "Erro ao atualizar transação",
+            detalhes: error.message
+        });
+    }
+});
+
 
 app.delete("/api/transacoes/:id", (req, res) => {
     try {
@@ -166,11 +258,6 @@ app.delete("/api/transacoes/:id", (req, res) => {
         });
     }
 });
-
-// ============================================================
-// DASHBOARD
-// GET /api/dashboard/:usuario_id
-// ============================================================
 
 app.get("/api/dashboard/:usuario_id", (req, res) => {
     try {
@@ -220,10 +307,6 @@ app.get("/api/dashboard/:usuario_id", (req, res) => {
         });
     }
 });
-
-// ============================================================
-// SERVIDOR
-// ============================================================
 
 const PORT = 3001;
 

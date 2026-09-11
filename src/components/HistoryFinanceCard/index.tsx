@@ -1,11 +1,12 @@
 import React from "react";
-import { Container, Tag} from "./style";
+import { Container, Tag } from "./style";
 
-interface IHistoryFinanceCard{
+interface IHistoryFinanceCard {
     tagColor: string;
     title: string;
-    subtitle:string;
+    subtitle: string;
     amount: string;
+    onClick?: () => void;
 }
 
 const HistoryFinanceCard: React.FC<IHistoryFinanceCard> = ({
@@ -13,15 +14,18 @@ const HistoryFinanceCard: React.FC<IHistoryFinanceCard> = ({
     title,
     subtitle,
     amount,
-}) =>  (
-            <Container >
-                <Tag color={tagColor}/>
-                <div>
-                    <span>{title}</span>
-                    <small>{subtitle}</small>
-                </div>
-                <h3>{amount}</h3>
-            </Container>
-    )
+    onClick,
+}) => (
+    <Container onClick={onClick}>
+        <Tag color={tagColor}/>
+
+        <div>
+            <span>{title}</span>
+            <small>{subtitle}</small>
+        </div>
+
+        <h3>{amount}</h3>
+    </Container>
+);
 
 export default HistoryFinanceCard;
