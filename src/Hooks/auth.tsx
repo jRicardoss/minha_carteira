@@ -23,6 +23,8 @@ interface IAuthContextData {
     ): Promise<void>;
 
     logout(): void;
+
+    excluirConta(): Promise<void>;
 }
 
 const AuthContext = createContext<IAuthContextData>(
@@ -93,7 +95,10 @@ export const AuthProvider: React.FC<{
 
         setUsuario(usuario);
     };
-
+        const excluirConta = async () => {
+        await api.delete("/usuarios/me");
+        logout();
+    };
     const logout = () => {
         localStorage.removeItem(
             "@MinhaCarteira:token"
@@ -112,11 +117,12 @@ export const AuthProvider: React.FC<{
 
     return (
         <AuthContext.Provider
-            value={{
+                value={{
                 usuario,
                 loading,
                 login,
                 logout,
+                excluirConta,
             }}
         >
             {children}
