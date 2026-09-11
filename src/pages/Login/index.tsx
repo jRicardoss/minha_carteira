@@ -6,6 +6,8 @@ import {
     useHistory,
 } from "react-router-dom";
 
+import { GoogleLogin } from "@react-oauth/google";
+
 import { useAuth } from "../../Hooks/auth";
 
 import {
@@ -24,6 +26,7 @@ const Login: React.FC = () => {
 
     const {
         login,
+        loginComGoogle,
     } = useAuth();
 
     const [email, setEmail] =
@@ -58,6 +61,36 @@ const Login: React.FC = () => {
             setError(
                 err.response?.data?.erro ||
                 "Erro ao realizar login"
+            );
+
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleGoogleSuccess = async (
+        credentialResponse: any
+    ) => {
+        try {
+            setError("");
+            setLoading(true);
+
+            if (!credentialResponse.credential) {
+                throw new Error(
+                    "Credencial do Google não recebida"
+                );
+            }
+
+            await loginComGoogle(
+                credentialResponse.credential
+            );
+
+            history.push("/");
+
+        } catch (err: any) {
+            setError(
+                err.response?.data?.erro ||
+                "Erro ao entrar com Google"
             );
 
         } finally {
@@ -120,6 +153,19 @@ const Login: React.FC = () => {
                     </Button>
 
                 </Form>
+
+                <div style={{ margin: "16px 0", textAlign: "center" }}>
+                    ou
+                </div>
+
+                <GoogleLogin
+                    onSuccess={handleGoogleSuccess}
+                    onError={() => {
+                        setError(
+                            "Erro ao entrar com Google"
+                        );
+                    }}
+                />
 
                 <RegisterText>
                     Ainda não possui uma conta?

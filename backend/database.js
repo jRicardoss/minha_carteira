@@ -48,4 +48,26 @@ db.exec(`
 
 console.log("Banco de dados conectado!");
 
+function buscarUsuarioPorEmail(email) {
+    const stmt = db.prepare(
+        "SELECT id, nome, email FROM usuarios WHERE email = ?"
+    );
+    return stmt.get(email);
+}
+
+function criarUsuarioGoogle(nome, email, senhaHashAleatoria) {
+    const stmt = db.prepare(
+        "INSERT INTO usuarios (nome, email, senha_hash) VALUES (?, ?, ?)"
+    );
+    const info = stmt.run(nome, email, senhaHashAleatoria);
+
+    return {
+        id: info.lastInsertRowid,
+        nome,
+        email,
+    };
+}
+
 module.exports = db;
+module.exports.buscarUsuarioPorEmail = buscarUsuarioPorEmail;
+module.exports.criarUsuarioGoogle = criarUsuarioGoogle;

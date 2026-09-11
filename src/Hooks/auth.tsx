@@ -22,6 +22,8 @@ interface IAuthContextData {
         senha: string
     ): Promise<void>;
 
+    loginComGoogle(credential: string): Promise<void>;
+
     logout(): void;
 
     excluirConta(): Promise<void>;
@@ -95,10 +97,40 @@ export const AuthProvider: React.FC<{
 
         setUsuario(usuario);
     };
-        const excluirConta = async () => {
+
+    const loginComGoogle = async (credential: string) => {
+        const response = await api.post(
+            "/auth/google",
+            { credential }
+        );
+
+        const {
+            token,
+            usuario,
+        } = response.data;
+
+        localStorage.setItem(
+            "@MinhaCarteira:token",
+            token
+        );
+
+        localStorage.setItem(
+            "@MinhaCarteira:usuario",
+            JSON.stringify(usuario)
+        );
+
+        api.defaults.headers.common[
+            "Authorization"
+        ] = `Bearer ${token}`;
+
+        setUsuario(usuario);
+    };
+
+    const excluirConta = async () => {
         await api.delete("/usuarios/me");
         logout();
     };
+
     const logout = () => {
         localStorage.removeItem(
             "@MinhaCarteira:token"
@@ -121,6 +153,7 @@ export const AuthProvider: React.FC<{
                 usuario,
                 loading,
                 login,
+                loginComGoogle,
                 logout,
                 excluirConta,
             }}

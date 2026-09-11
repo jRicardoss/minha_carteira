@@ -2,6 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
+const { OAuth2Client } = require("google-auth-library");
 
 const db = require("./database");
 
@@ -16,6 +18,15 @@ app.use(express.json());
 
 // Depois podemos colocar isso em um arquivo .env
 const JWT_SECRET = "minha_chave_secreta_super_segura";
+
+// ============================================================
+// CONFIGURAÇÃO GOOGLE OAUTH
+// ============================================================
+
+const GOOGLE_CLIENT_ID =
+    "90347430730-i25t4i5vmus5rnk4cd0b57oprnk86dvi.apps.googleusercontent.com";
+
+const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
 // ============================================================
 // MIDDLEWARE DE AUTENTICAÇÃO
@@ -219,6 +230,94 @@ app.post("/api/auth/login", async (req, res) => {
 
         res.status(500).json({
             erro: "Erro ao realizar login"
+        });
+    }
+});
+
+// ============================================================
+// LOGIN COM GOOGLE
+// POST /api/auth/google
+// ============================================================
+
+app.post("/api/auth/google", async (req, res) => {
+    try {
+        const { credential } = req.body;
+
+        if (!credential) {
+            return res.status(400).json({
+                erro: "Credencial do Google não informada"
+            });
+        }
+
+        const ticket = await googleClient.verifyIdToken({
+            idToken: credential,
+            audience: GOOGLE_CLIENT_ID
+        });
+
+        const payload = ticket.getPayload();
+        const { email, name } = payload;
+
+        let usuario = db.prepare(`
+            SELECT
+                id,
+                nome,
+                email
+            FROM usuarios
+            WHERE email = ?
+        `).get(email);
+
+        if (!usuario) {
+            const senhaHashAleatoria = await bcrypt.hash(
+                crypto.randomBytes(32).toString("hex"),
+                10
+            );
+
+            const resultado = db.prepare(`
+                INSERT INTO usuarios (
+                    nome,
+                    email,
+                    senha_hash
+                )
+                VALUES (?, ?, ?)
+            `).run(
+                name,
+                email,
+                senhaHashAleatoria
+            );
+
+            usuario = {
+                id: resultado.lastInsertRowid,
+                nome: name,
+                email
+            };
+        }
+
+        const token = jwt.sign(
+            {
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email
+            },
+            JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
+        res.json({
+            mensagem: "Login com Google realizado com sucesso",
+            token,
+            usuario
+        });
+
+    } catch (error) {
+        console.error(
+            "ERRO AO REALIZAR LOGIN COM GOOGLE:",
+            error
+        );
+
+        res.status(401).json({
+            erro: "Token do Google inválido"
         });
     }
 });
@@ -573,6 +672,11 @@ app.get(
     }
 );
 
+// ============================================================
+// EXCLUIR CONTA
+// DELETE /api/usuarios/me
+// ============================================================
+
 app.delete(
     "/api/usuarios/me",
     autenticarToken,
@@ -605,6 +709,7 @@ app.delete(
         }
     }
 );
+
 const PORT = 3001;
 
 app.listen(PORT, () => {
