@@ -5,21 +5,25 @@ import {
     MenuButton,
     Profile,
     Welcome,
-    UserName
+    UserName,
 } from "./style";
 
 import { MdMenu } from "react-icons/md";
 
 import emojis from "../../utils/emojis";
+
 import ModalAddTransaction from "../ModalAddTransaction";
+
+import { useAuth } from "../../Hooks/auth";
 
 interface MainHeaderProps {
     onMenuClick: () => void;
 }
 
 const MainHeader: React.FC<MainHeaderProps> = ({
-    onMenuClick
+    onMenuClick,
 }) => {
+
     const emoji = useMemo(() => {
         const indice = Math.floor(
             Math.random() * emojis.length
@@ -28,8 +32,13 @@ const MainHeader: React.FC<MainHeaderProps> = ({
         return emojis[indice];
     }, []);
 
+    const {
+        usuario,
+    } = useAuth();
+
     return (
         <Container>
+
             <MenuButton
                 type="button"
                 onClick={onMenuClick}
@@ -39,16 +48,19 @@ const MainHeader: React.FC<MainHeaderProps> = ({
             </MenuButton>
 
             <Profile>
+
                 <Welcome>
                     Olá, {emoji}
                 </Welcome>
 
                 <UserName>
-                    João Ricardo
+                    {usuario?.nome}
                 </UserName>
+
             </Profile>
 
             <ModalAddTransaction />
+
         </Container>
     );
 };

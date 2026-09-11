@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const db = require("./database");
 
@@ -8,9 +10,59 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// ============================================================
+// CONFIGURAÇÃO JWT
+// ============================================================
 
+// Depois podemos colocar isso em um arquivo .env
+const JWT_SECRET = "minha_chave_secreta_super_segura";
+
+// ============================================================
+// MIDDLEWARE DE AUTENTICAÇÃO
+// ============================================================
+
+function autenticarToken(req, res, next) {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader) {
+        return res.status(401).json({
+            erro: "Token não informado"
+        });
+    }
+
+    const partes = authHeader.split(" ");
+
+    if (
+        partes.length !== 2 ||
+        partes[0] !== "Bearer"
+    ) {
+        return res.status(401).json({
+            erro: "Token inválido"
+        });
+    }
+
+    const token = partes[1];
+
+    try {
+        const usuario = jwt.verify(
+            token,
+            JWT_SECRET
+        );
+
+        req.usuario = usuario;
+
+        next();
+
+    } catch (error) {
+        return res.status(401).json({
+            erro: "Token inválido ou expirado"
+        });
+    }
+}
+
+// ============================================================
 // ROTA PRINCIPAL
-// GET /
+// ============================================================
 
 app.get("/", (req, res) => {
     res.json({
@@ -18,295 +70,508 @@ app.get("/", (req, res) => {
     });
 });
 
-// LISTAR TRANSAÇÕES
-// GET /api/transacoes
+// ============================================================
+// CADASTRO
+// POST /api/auth/cadastro
+// ============================================================
 
-
-app.get("/api/transacoes", (req, res) => {
+app.post("/api/auth/cadastro", async (req, res) => {
     try {
-        const transacoes = db.prepare(`
-            SELECT *
-            FROM transacoes
-            ORDER BY date DESC, id DESC
-        `).all();
+        const {
+            nome,
+            email,
+            senha
+        } = req.body;
 
-        res.json(transacoes);
+        if (!nome || !email || !senha) {
+            return res.status(400).json({
+                erro: "Nome, email e senha são obrigatórios"
+            });
+        }
+
+        const usuarioExistente = db.prepare(`
+            SELECT id
+            FROM usuarios
+            WHERE email = ?
+        `).get(email);
+
+        if (usuarioExistente) {
+            return res.status(409).json({
+                erro: "Este email já está cadastrado"
+            });
+        }
+
+        const senhaHash = await bcrypt.hash(
+            senha,
+            10
+        );
+
+        const resultado = db.prepare(`
+            INSERT INTO usuarios (
+                nome,
+                email,
+                senha_hash
+            )
+            VALUES (?, ?, ?)
+        `).run(
+            nome,
+            email,
+            senhaHash
+        );
+
+        const usuario = db.prepare(`
+            SELECT
+                id,
+                nome,
+                email,
+                criado_em
+            FROM usuarios
+            WHERE id = ?
+        `).get(resultado.lastInsertRowid);
+
+        res.status(201).json({
+            mensagem: "Usuário cadastrado com sucesso",
+            usuario
+        });
 
     } catch (error) {
-        console.error("ERRO AO BUSCAR TRANSAÇÕES:", error);
+        console.error(
+            "ERRO AO CADASTRAR USUÁRIO:",
+            error
+        );
 
         res.status(500).json({
-            erro: "Erro ao buscar transações",
-            detalhes: error.message
+            erro: "Erro ao cadastrar usuário"
         });
     }
 });
 
-// CRIAR TRANSAÇÃO
-// POST /api/transacoes
+// ============================================================
+// LOGIN
+// POST /api/auth/login
+// ============================================================
 
-app.post("/api/transacoes", (req, res) => {
+app.post("/api/auth/login", async (req, res) => {
     try {
         const {
-            usuario_id,
-            description,
-            amount,
-            type,
-            frequency,
-            date
+            email,
+            senha
         } = req.body;
 
-        console.log("DADOS RECEBIDOS:", req.body);
-
-        // Usuário padrão temporário
-        const usuarioId = usuario_id || 1;
-
-        // Verifica campos obrigatórios
-        if (
-            !description ||
-            amount === undefined ||
-            !type ||
-            !frequency ||
-            !date
-        ) {
+        if (!email || !senha) {
             return res.status(400).json({
-                erro: "Todos os campos são obrigatórios",
-                dadosRecebidos: req.body
+                erro: "Email e senha são obrigatórios"
             });
         }
 
-        // Verifica tipo
-        if (!["entrada", "saida"].includes(type)) {
-            return res.status(400).json({
-                erro: "O tipo deve ser 'entrada' ou 'saida'"
+        const usuario = db.prepare(`
+            SELECT *
+            FROM usuarios
+            WHERE email = ?
+        `).get(email);
+
+        if (!usuario) {
+            return res.status(401).json({
+                erro: "Email ou senha incorretos"
             });
         }
 
-        // Verifica frequência
-        if (!["recorrente", "eventual"].includes(frequency)) {
-            return res.status(400).json({
-                erro: "A frequência deve ser 'recorrente' ou 'eventual'"
+        const senhaCorreta = await bcrypt.compare(
+            senha,
+            usuario.senha_hash
+        );
+
+        if (!senhaCorreta) {
+            return res.status(401).json({
+                erro: "Email ou senha incorretos"
             });
         }
 
-        // Cria a transação
-        const resultado = db.prepare(`
-            INSERT INTO transacoes (
-                usuario_id,
+        const token = jwt.sign(
+            {
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email
+            },
+            JWT_SECRET,
+            {
+                expiresIn: "7d"
+            }
+        );
+
+        res.json({
+            mensagem: "Login realizado com sucesso",
+
+            token,
+
+            usuario: {
+                id: usuario.id,
+                nome: usuario.nome,
+                email: usuario.email
+            }
+        });
+
+    } catch (error) {
+        console.error(
+            "ERRO AO REALIZAR LOGIN:",
+            error
+        );
+
+        res.status(500).json({
+            erro: "Erro ao realizar login"
+        });
+    }
+});
+
+// ============================================================
+// LISTAR TRANSAÇÕES
+// GET /api/transacoes
+// ============================================================
+
+app.get(
+    "/api/transacoes",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const transacoes = db.prepare(`
+                SELECT *
+                FROM transacoes
+                WHERE usuario_id = ?
+                ORDER BY date DESC, id DESC
+            `).all(req.usuario.id);
+
+            res.json(transacoes);
+
+        } catch (error) {
+            console.error(
+                "ERRO AO BUSCAR TRANSAÇÕES:",
+                error
+            );
+
+            res.status(500).json({
+                erro: "Erro ao buscar transações",
+                detalhes: error.message
+            });
+        }
+    }
+);
+
+// ============================================================
+// CRIAR TRANSAÇÃO
+// POST /api/transacoes
+// ============================================================
+
+app.post(
+    "/api/transacoes",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const {
                 description,
                 amount,
                 type,
                 frequency,
                 date
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        `).run(
-            usuarioId,
-            description,
-            Number(amount),
-            type,
-            frequency,
-            date
-        );
+            } = req.body;
 
-        // Busca a transação criada
-        const transacao = db.prepare(`
-            SELECT *
-            FROM transacoes
-            WHERE id = ?
-        `).get(resultado.lastInsertRowid);
+            // ID vem do token, não do frontend
+            const usuarioId = req.usuario.id;
 
-        console.log("TRANSAÇÃO CRIADA:", transacao);
+            if (
+                !description ||
+                amount === undefined ||
+                !type ||
+                !frequency ||
+                !date
+            ) {
+                return res.status(400).json({
+                    erro: "Todos os campos são obrigatórios"
+                });
+            }
 
-        res.status(201).json(transacao);
+            if (!["entrada", "saida"].includes(type)) {
+                return res.status(400).json({
+                    erro: "O tipo deve ser 'entrada' ou 'saida'"
+                });
+            }
 
-    } catch (error) {
-        console.error("ERRO AO CRIAR TRANSAÇÃO:", error);
+            if (
+                !["recorrente", "eventual"]
+                    .includes(frequency)
+            ) {
+                return res.status(400).json({
+                    erro:
+                        "A frequência deve ser 'recorrente' ou 'eventual'"
+                });
+            }
 
-        res.status(500).json({
-            erro: "Erro ao criar transação",
-            detalhes: error.message
-        });
+            const resultado = db.prepare(`
+                INSERT INTO transacoes (
+                    usuario_id,
+                    description,
+                    amount,
+                    type,
+                    frequency,
+                    date
+                )
+                VALUES (?, ?, ?, ?, ?, ?)
+            `).run(
+                usuarioId,
+                description,
+                Number(amount),
+                type,
+                frequency,
+                date
+            );
+
+            const transacao = db.prepare(`
+                SELECT *
+                FROM transacoes
+                WHERE id = ?
+                AND usuario_id = ?
+            `).get(
+                resultado.lastInsertRowid,
+                usuarioId
+            );
+
+            res.status(201).json(transacao);
+
+        } catch (error) {
+            console.error(
+                "ERRO AO CRIAR TRANSAÇÃO:",
+                error
+            );
+
+            res.status(500).json({
+                erro: "Erro ao criar transação",
+                detalhes: error.message
+            });
+        }
     }
-});
+);
 
-app.put("/api/transacoes/:id", (req, res) => {
-    try {
-        const { id } = req.params;
+// ============================================================
+// EDITAR TRANSAÇÃO
+// PUT /api/transacoes/:id
+// ============================================================
 
-        const {
-            description,
-            amount,
-            type,
-            frequency,
-            date
-        } = req.body;
+app.put(
+    "/api/transacoes/:id",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const { id } = req.params;
 
-        console.log(
-            "DADOS PARA ATUALIZAR:",
-            id,
-            req.body
-        );
+            const {
+                description,
+                amount,
+                type,
+                frequency,
+                date
+            } = req.body;
 
-        // Verifica campos obrigatórios
-        if (
-            !description ||
-            amount === undefined ||
-            !type ||
-            !frequency ||
-            !date
-        ) {
-            return res.status(400).json({
-                erro: "Todos os campos são obrigatórios",
-                dadosRecebidos: req.body
+            if (
+                !description ||
+                amount === undefined ||
+                !type ||
+                !frequency ||
+                !date
+            ) {
+                return res.status(400).json({
+                    erro:
+                        "Todos os campos são obrigatórios"
+                });
+            }
+
+            if (
+                !["entrada", "saida"].includes(type)
+            ) {
+                return res.status(400).json({
+                    erro:
+                        "O tipo deve ser 'entrada' ou 'saida'"
+                });
+            }
+
+            if (
+                !["recorrente", "eventual"]
+                    .includes(frequency)
+            ) {
+                return res.status(400).json({
+                    erro:
+                        "A frequência deve ser 'recorrente' ou 'eventual'"
+                });
+            }
+
+            // Só atualiza se a transação
+            // pertencer ao usuário logado
+            const resultado = db.prepare(`
+                UPDATE transacoes
+                SET
+                    description = ?,
+                    amount = ?,
+                    type = ?,
+                    frequency = ?,
+                    date = ?
+                WHERE
+                    id = ?
+                    AND usuario_id = ?
+            `).run(
+                description,
+                Number(amount),
+                type,
+                frequency,
+                date,
+                id,
+                req.usuario.id
+            );
+
+            if (resultado.changes === 0) {
+                return res.status(404).json({
+                    erro:
+                        "Transação não encontrada"
+                });
+            }
+
+            const transacaoAtualizada = db.prepare(`
+                SELECT *
+                FROM transacoes
+                WHERE
+                    id = ?
+                    AND usuario_id = ?
+            `).get(
+                id,
+                req.usuario.id
+            );
+
+            res.json(transacaoAtualizada);
+
+        } catch (error) {
+            console.error(
+                "ERRO AO ATUALIZAR TRANSAÇÃO:",
+                error
+            );
+
+            res.status(500).json({
+                erro:
+                    "Erro ao atualizar transação",
+                detalhes: error.message
             });
         }
-
-        // Verifica tipo
-        if (!["entrada", "saida"].includes(type)) {
-            return res.status(400).json({
-                erro: "O tipo deve ser 'entrada' ou 'saida'"
-            });
-        }
-
-        // Verifica frequência
-        if (!["recorrente", "eventual"].includes(frequency)) {
-            return res.status(400).json({
-                erro: "A frequência deve ser 'recorrente' ou 'eventual'"
-            });
-        }
-
-        // Atualiza a transação
-        const resultado = db.prepare(`
-            UPDATE transacoes
-            SET
-                description = ?,
-                amount = ?,
-                type = ?,
-                frequency = ?,
-                date = ?
-            WHERE id = ?
-        `).run(
-            description,
-            Number(amount),
-            type,
-            frequency,
-            date,
-            id
-        );
-
-        // Verifica se encontrou a transação
-        if (resultado.changes === 0) {
-            return res.status(404).json({
-                erro: "Transação não encontrada"
-            });
-        }
-
-        // Busca a transação atualizada
-        const transacaoAtualizada = db.prepare(`
-            SELECT *
-            FROM transacoes
-            WHERE id = ?
-        `).get(id);
-
-        console.log(
-            "TRANSAÇÃO ATUALIZADA:",
-            transacaoAtualizada
-        );
-
-        res.json(transacaoAtualizada);
-
-    } catch (error) {
-        console.error(
-            "ERRO AO ATUALIZAR TRANSAÇÃO:",
-            error
-        );
-
-        res.status(500).json({
-            erro: "Erro ao atualizar transação",
-            detalhes: error.message
-        });
     }
-});
+);
 
+// ============================================================
+// DELETAR TRANSAÇÃO
+// DELETE /api/transacoes/:id
+// ============================================================
 
-app.delete("/api/transacoes/:id", (req, res) => {
-    try {
-        const { id } = req.params;
+app.delete(
+    "/api/transacoes/:id",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const { id } = req.params;
 
-        const resultado = db.prepare(`
-            DELETE FROM transacoes
-            WHERE id = ?
-        `).run(id);
+            // Só exclui se pertencer ao usuário
+            const resultado = db.prepare(`
+                DELETE FROM transacoes
+                WHERE
+                    id = ?
+                    AND usuario_id = ?
+            `).run(
+                id,
+                req.usuario.id
+            );
 
-        if (resultado.changes === 0) {
-            return res.status(404).json({
-                erro: "Transação não encontrada"
+            if (resultado.changes === 0) {
+                return res.status(404).json({
+                    erro:
+                        "Transação não encontrada"
+                });
+            }
+
+            res.json({
+                mensagem:
+                    "Transação excluída com sucesso"
+            });
+
+        } catch (error) {
+            console.error(
+                "ERRO AO EXCLUIR TRANSAÇÃO:",
+                error
+            );
+
+            res.status(500).json({
+                erro:
+                    "Erro ao excluir transação",
+                detalhes: error.message
             });
         }
-
-        res.json({
-            mensagem: "Transação excluída com sucesso"
-        });
-
-    } catch (error) {
-        console.error("ERRO AO EXCLUIR TRANSAÇÃO:", error);
-
-        res.status(500).json({
-            erro: "Erro ao excluir transação",
-            detalhes: error.message
-        });
     }
-});
+);
 
-app.get("/api/dashboard/:usuario_id", (req, res) => {
-    try {
-        const { usuario_id } = req.params;
+// ============================================================
+// DASHBOARD
+// GET /api/dashboard
+// ============================================================
 
-        const resultado = db.prepare(`
-            SELECT
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN type = 'entrada' THEN amount
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS entradas,
+app.get(
+    "/api/dashboard",
+    autenticarToken,
+    (req, res) => {
+        try {
+            const resultado = db.prepare(`
+                SELECT
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN type = 'entrada'
+                                THEN amount
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS entradas,
 
-                COALESCE(
-                    SUM(
-                        CASE
-                            WHEN type = 'saida' THEN amount
-                            ELSE 0
-                        END
-                    ),
-                    0
-                ) AS saidas
+                    COALESCE(
+                        SUM(
+                            CASE
+                                WHEN type = 'saida'
+                                THEN amount
+                                ELSE 0
+                            END
+                        ),
+                        0
+                    ) AS saidas
 
-            FROM transacoes
-            WHERE usuario_id = ?
-        `).get(usuario_id);
+                FROM transacoes
+                WHERE usuario_id = ?
+            `).get(req.usuario.id);
 
-        const saldo =
-            resultado.entradas - resultado.saidas;
+            const saldo =
+                resultado.entradas -
+                resultado.saidas;
 
-        res.json({
-            entradas: resultado.entradas,
-            saidas: resultado.saidas,
-            saldo
-        });
+            res.json({
+                entradas: resultado.entradas,
+                saidas: resultado.saidas,
+                saldo
+            });
 
-    } catch (error) {
-        console.error("ERRO AO CARREGAR DASHBOARD:", error);
+        } catch (error) {
+            console.error(
+                "ERRO AO CARREGAR DASHBOARD:",
+                error
+            );
 
-        res.status(500).json({
-            erro: "Erro ao carregar dashboard",
-            detalhes: error.message
-        });
+            res.status(500).json({
+                erro:
+                    "Erro ao carregar dashboard",
+                detalhes: error.message
+            });
+        }
     }
-});
+);
 
 const PORT = 3001;
 
