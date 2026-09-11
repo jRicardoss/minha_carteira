@@ -13,28 +13,33 @@ export const Container = styled.div`
     padding: 30px 20px;
     flex-direction: column;
 
-
     border-radius: 7px;
-    
-    `;
 
+    @media (max-width: 768px) {
+        padding: 20px 8px;
+    }
+`;
 
 export const ChartContainer = styled.div`
         flex: 1;
         height: 260px;
     `;
 
-
 export const Header = styled.header`
-    width:100%;
+    width: 100%;
     display: flex;
     justify-content: space-between;
-    >h2{
+
+    > h2 {
         margin-bottom: 20px;
         padding-left: 17px;
-        
     }
 
+    @media (max-width: 768px) {
+        > h2 {
+            padding-left: 5px;
+        }
+    }
 `;
 export const LegendContainer = styled.ul`
     list-style: none;

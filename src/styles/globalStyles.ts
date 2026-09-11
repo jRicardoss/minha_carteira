@@ -19,5 +19,10 @@ export default createGlobalStyle`
     button{
         cursor: pointer;
     }
+    @media (max-width: 768px) {
+        body {
+            font-size: 14px;
+        }
+}
 
 `;
