@@ -33,8 +33,6 @@ const Dashboard: React.FC = () => {
     const [entries, setEntries] = useState<IDataItem[]>([]);
     const [expenses, setExpenses] = useState<IDataItem[]>([]);
 
-    // Buscar dados do backend
-   // Buscar dados do backend
 // Buscar transações do SQLite através do backend
 useEffect(() => {
     const fetchData = async () => {
@@ -69,11 +67,34 @@ useEffect(() => {
             setExpenses(saidas);
 
         } catch (err) {
-            console.error("Erro ao buscar transações:", err);
+            console.error(
+                "Erro ao buscar transações:",
+                err
+            );
         }
     };
 
+    const handleTransactionsUpdated = () => {
+        fetchData();
+    };
+
+    // Busca os dados inicialmente
     fetchData();
+
+    // Escuta alterações nas transações
+    window.addEventListener(
+        "transacoesAtualizadas",
+        handleTransactionsUpdated
+    );
+
+    // Remove o evento ao sair do Dashboard
+    return () => {
+        window.removeEventListener(
+            "transacoesAtualizadas",
+            handleTransactionsUpdated
+        );
+    };
+
 }, []);
 
     // Anos disponíveis
